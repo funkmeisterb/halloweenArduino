@@ -73,14 +73,18 @@
 // TONES  ==========================================
 // Start by defining the relationship between 
 //       note, period, &  frequency. 
-#define  c     3830    // 261 Hz 
-#define  d     3400    // 294 Hz 
-#define  e     3038    // 329 Hz 
-#define  f     2864    // 349 Hz 
-#define  g     2550    // 392 Hz 
-#define  a     2272    // 440 Hz 
-#define  b     2028    // 493 Hz 
-#define  C     1912    // 523 Hz 
+#define  C4     3830    // 261 Hz 
+#define  D4     3400    // 294 Hz 
+#define  E4     3038    // 329 Hz 
+#define  F4     2864    // 349 Hz 
+#define  G4     2550    // 392 Hz 
+#define  AA     2272    // 440 Hz 
+#define  B5     2028    // 493 Hz 
+#define  C5     1912    // 523 Hz 
+#define  D5     1703    // 587 Hz
+#define  E5     1517    // 659 Hz 
+#define  F5     1430    // 699 Hz 
+#define  G5     1276    // 784 Hz 
 // Define a special note, 'R', to represent a rest
 #define  R     0
 
@@ -94,7 +98,7 @@ int DEBUG = 1;
 // MELODY and TIMING  =======================================
 //  melody[] is an array of notes, accompanied by beats[], 
 //  which sets each note's relative length (higher #, longer note) 
-int melody[] = {  C,  b,  g,  C,  b,   e,  R,  C,  c,  g, a, C };
+int melody[] = {  C4,  B5,  G4,  C5,  B5,  E4,  R,  C5,  C4,  G4, A4, C5 };
 int beats[]  = { 16, 16, 16,  8,  8,  16, 32, 16, 16, 16, 8, 8 }; 
 int MAX_COUNT = sizeof(melody) / 2; // Melody length, for looping.
 // Set overall tempo
