@@ -42,10 +42,98 @@
 // Written by P. Burgess for Adafruit Industries.
 // BSD license, all text above must be included in any redistribution.
 
+/* Play Melody
+ * -----------
+ *
+ * Program to play a simple melody
+ *
+ * Tones are created by quickly pulsing a speaker on and off 
+ *   using PWM, to create signature frequencies.
+ *
+ * Each note has a frequency, created by varying the period of 
+ *  vibration, measured in microseconds. We'll use pulse-width
+ *  modulation (PWM) to create that vibration.
+
+ * We calculate the pulse-width to be half the period; we pulse 
+ *  the speaker HIGH for 'pulse-width' microseconds, then LOW 
+ *  for 'pulse-width' microseconds.
+ *  This pulsing creates a vibration of the desired frequency.
+ *
+ * (cleft) 2005 D. Cuartielles for K3
+ * Refactoring and comments 2006 clay.shirky@nyu.edu
+ * See NOTES in comments at end for possible improvements
+ */
+ 
 #include <Arduino.h>
 #include <Wire.h>
 #include "Adafruit_LEDBackpack.h"
 #include "Adafruit_GFX.h"
+
+
+// TONES  ==========================================
+// Start by defining the relationship between 
+//       note, period, &  frequency. 
+#define  c     3830    // 261 Hz 
+#define  d     3400    // 294 Hz 
+#define  e     3038    // 329 Hz 
+#define  f     2864    // 349 Hz 
+#define  g     2550    // 392 Hz 
+#define  a     2272    // 440 Hz 
+#define  b     2028    // 493 Hz 
+#define  C     1912    // 523 Hz 
+// Define a special note, 'R', to represent a rest
+#define  R     0
+
+// SETUP ============================================
+// Set up speaker on a PWM pin (digital 9, 10 or 11)
+int speakerOut = 9;
+int pushButton = 10;
+// Do we want debugging on serial out? 1 for yes, 0 for no
+int DEBUG = 1;
+
+// MELODY and TIMING  =======================================
+//  melody[] is an array of notes, accompanied by beats[], 
+//  which sets each note's relative length (higher #, longer note) 
+int melody[] = {  C,  b,  g,  C,  b,   e,  R,  C,  c,  g, a, C };
+int beats[]  = { 16, 16, 16,  8,  8,  16, 32, 16, 16, 16, 8, 8 }; 
+int MAX_COUNT = sizeof(melody) / 2; // Melody length, for looping.
+// Set overall tempo
+long tempo = 10000;
+// Set length of pause between notes
+int pause = 1000;
+// Loop variable to increase Rest length
+int rest_count = 100; //<-BLETCHEROUS HACK; See NOTES
+// Initialize core variables
+int tone_ = 0;
+int beat = 0;
+long duration  = 0;
+bool playSound = false;
+
+// PLAY TONE  ==============================================
+// Pulse the speaker to play a tone for a particular duration
+void playTone() {
+  long elapsed_time = 0;
+  if (tone_ > 0) { // if this isn't a Rest beat, while the tone has 
+    //  played less long than 'duration', pulse speaker HIGH and LOW
+    while (elapsed_time < duration) {
+
+      digitalWrite(speakerOut,HIGH);
+      delayMicroseconds(tone_ / 2);
+
+      // DOWN
+      digitalWrite(speakerOut, LOW);
+      delayMicroseconds(tone_ / 2);
+
+      // Keep track of how long we pulsed
+      elapsed_time += (tone_);
+    } 
+  }
+  else { // Rest beat; loop times delay
+    for (int j = 0; j < rest_count; j++) { // See NOTE on rest_count
+      delayMicroseconds(duration);  
+    }                                
+  }                                 
+}
 
 // Because the two eye matrices share the same address, only four
 // matrix objects are needed for the five displays:
@@ -169,6 +257,12 @@ int8_t
   dX   = 0, dY   = 0;   // Distance from prior to new position
 
 void setup() {
+  pinMode(speakerOut, OUTPUT);
+  if (DEBUG) { 
+    Serial.begin(9600); // Set serial out if we want debugging
+  }
+
+  pinMode(pushButton, INPUT);
 
   // Seed random number generator from an unused analog input:
   randomSeed(analogRead(A0));
@@ -176,8 +270,6 @@ void setup() {
   // Initialize each matrix object:
   for(uint8_t i=0; i<4; i++) {
     matrix[i].begin(matrixAddr[i]);
-    // If using 'small' (1.2") displays vs. 'mini' (0.8"), enable this:
-    // matrix[i].setRotation(3);
   }
 }
 
@@ -223,29 +315,35 @@ void loop() {
     matrix[MATRIX_EYES].fillRect(eyeX, eyeY, 2, 2, LED_OFF);
   }
 
-  // Draw mouth, switch to new random image periodically
-  drawMouth(mouthImg[mouthPos]);
-  if(--mouthCountdown == 0) {
-    mouthPos = random(6); // Random image
-    // If the 'neutral' position was chosen, there's a 1-in-5 chance we'll
-    // select a longer hold time.  This gives the appearance of periodic
-    // pauses in speech (e.g. between sentences, etc.).
-    mouthCountdown = ((mouthPos == 0) && (random(5) == 0)) ?
-      random(10, 40) : // Longer random duration
-      random(2, 8);    // Shorter random duration
-  }
-
   // Refresh all of the matrices in one quick pass
   for(uint8_t i=0; i<4; i++) matrix[i].writeDisplay();
 
   delay(20); // ~50 FPS
-}
 
-// Draw mouth image across three adjacent displays
-void drawMouth(const uint8_t *img) {
-  for(uint8_t i=0; i<3; i++) {
-    matrix[MATRIX_MOUTH_LEFT + i].clear();
-    matrix[MATRIX_MOUTH_LEFT + i].drawBitmap(i * -8, 0, img, 24, 8, LED_ON);
+  playSound = digitalRead(pushButton);
+  if (playSound)
+  {
+    // Set up a counter to pull from melody[] and beats[]
+    for (int i=0; i<MAX_COUNT; i++) {
+      tone_ = melody[i];
+      beat = beats[i];
+  
+      duration = beat * tempo; // Set up timing
+  
+      playTone(); 
+      // A pause between notes...
+      delayMicroseconds(pause);
+  
+      if (DEBUG) { // If debugging, report loop, tone, beat, and duration
+        Serial.print(i);
+        Serial.print(":");
+        Serial.print(beat);
+        Serial.print(" ");    
+        Serial.print(tone_);
+        Serial.print(" ");
+        Serial.println(duration);
+      }
+    }
   }
 }
 
