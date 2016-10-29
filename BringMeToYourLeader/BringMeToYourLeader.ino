@@ -91,7 +91,7 @@
 // SETUP ============================================
 // Set up speaker on a PWM pin (digital 9, 10 or 11)
 int speakerOut = 9;
-int pushButton = 10;
+int pushButton = 1;
 // Do we want debugging on serial out? 1 for yes, 0 for no
 int DEBUG = 1;
 
@@ -111,7 +111,6 @@ int rest_count = 100; //<-BLETCHEROUS HACK; See NOTES
 int tone_ = 0;
 int beat = 0;
 long duration  = 0;
-bool playSound = false;
 
 // PLAY TONE  ==============================================
 // Pulse the speaker to play a tone for a particular duration
@@ -324,8 +323,8 @@ void loop() {
 
   delay(20); // ~50 FPS
 
-  playSound = digitalRead(pushButton);
-  if (playSound)
+  int buttonValue = analogRead(pushButton);
+  if (buttonValue > 900)
   {
     // Set up a counter to pull from melody[] and beats[]
     for (int i=0; i<MAX_COUNT; i++) {
