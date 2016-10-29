@@ -57,14 +57,15 @@ void loop() {
     delayTimeMs = millis() % 100 + 100;
     alternating();
   }
-  int pushButton = digitalRead(PUSH_BUTTON);
-  if (pushButton == HIGH && previousPushState == false)
+  
+  int buttonValue = analogRead(PUSH_BUTTON);
+  if (buttonValue > 900 && previousPushState == false)
   {
     // Change mode
     mode = (mode + 1) % MODE_COUNT;
     previousPushState = true;
   }
-  if (pushButton == LOW)
+  if (buttonValue < 900 && previousPushState == true)
   {
     previousPushState = false;
   }
